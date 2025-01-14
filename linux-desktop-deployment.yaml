@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: linux-desktop-deployment
+  labels:
+    app: linux-desktop
+spec:
+  replicas: 10 # Number of containers (VM-like instances)
+  selector:
+    matchLabels:
+      app: linux-desktop
+  template:
+    metadata:
+      labels:
+        app: linux-desktop
+    spec:
+      containers:
+      - name: linux-desktop
+        image: dorowu/ubuntu-desktop-lxde-vnc
+        ports:
+        - containerPort: 5901
+        env:
+        - name: USERNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name # Use pod name as username
+        - name: VNC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: linux-desktop-secrets
+              key: vnc-password
+        resources:
+          limits:
+            memory: "2Gi" # Limit memory per container
+            cpu: "1" # Limit CPU per container
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: linux-desktop-service
+  labels:
+    app: linux-desktop
+spec:
+  type: NodePort
+  ports:
+  - port: 5901
+    targetPort: 5901
+    nodePort: 30001 # Base NodePort for VNC; increments for replicas
+  selector:
+    app: linux-desktop
+
